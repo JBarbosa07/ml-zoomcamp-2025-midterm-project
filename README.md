@@ -16,6 +16,8 @@ The goal is to help analysts, coaches, or automated systems quickly assess wheth
 ---
 
 ## Dataset
+URL: https://www.kaggle.com/datasets/keerthivasankannan/lol-dataset
+
 The dataset contains ranked solo queue matches from *League of Legends*, collected via Riot’s official API.  
 
 ### **Aggregation**
