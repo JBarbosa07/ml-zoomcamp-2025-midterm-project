@@ -1,17 +1,17 @@
 # Predicting Victory in League of Legends from Early-Game Statistics
 
 ## Project Overview
-In competitive *League of Legends* matches, early-game performance often determines which team gains momentum toward victory. Key milestones, such as the **14-minute laning phase** and **20-minute mid-game transition**, reflect critical indicators like gold, experience, kills, and objective control, which can significantly influence the outcome of a match.
+In competitive *League of Legends* matches, early-game performance often determines which team gains momentum toward victory. Key milestones, especially the **14-minute laning phase**, reflects critical indicators like gold, experience, kills, and objective control, which can significantly influence the outcome of a match. The 15-minute mark is also crucially the first opportunity for players to forfeit a match, so means to accurately assess whether it is worth cutting losses early is valuable.
 
 This project aims to **predict a team’s probability of winning** using early-game statistics and champion compositions. The model considers:
 
-- Numerical performance indicators for each role (`gold_14`, `xp_14`, `kda_14`, `gold_20`, `xp_20`, `damage_20`)  
+- Numerical performance indicators for each role (`gold_14`, `xp_14`, `kda_14`)  
 - Team objectives (`dragons_14`, `towers_14`, `plates_14`)  
 - Champion selection per role (`top`, `jungle`, `mid`, `adc`, `support`)  
 
 The aggregated dataset represents **team-level and match-level data**, where each row contains both teams’ compositions, early-game stats, and objectives.
 
-The goal is to help analysts, coaches, or automated systems quickly assess whether a team is on track to win, providing insights for **real-time evaluation, AI commentary, esports analytics, or player training dashboards**.
+The goal is to help analysts, coaches, or automated systems quickly assess whether a team is on track to win, providing insights for **real-time evaluation, esports analytics, or player training dashboards**.
 
 ---
 
@@ -29,7 +29,7 @@ The dataset contains ranked solo queue matches from *League of Legends*, collect
 ### **Selected Features**
 | Feature Type          | Examples | Notes |
 |----------------------|----------|-------|
-| **Per-role stats** | `top_gold_14`, `mid_kda_14`, `adc_xp_20`, `support_damage_20` | Includes 14- and 20-minute snapshots |
+| **Per-role stats** | `top_gold_14`, `mid_kda_14`| Includes 14-minute snapshots |
 | **Team objectives** | `dragons_14`, `towers_14`, `plates_14` | `heralds_14` and `grubs_14` removed (all zeros) |
 | **Champion selections** | `champion_top_blue`, `champion_mid_red` | One-hot encoded for ML models |
 
@@ -79,9 +79,6 @@ This is a **binary classification problem**:
     "gold_14": 9252,
     "xp_14": 10317,
     "kda_14": 3.2,
-    "gold_20": 14230,
-    "xp_20": 15600,
-    "damage_20": 12500,
     "towers_14": 2,
     "dragons_14": 1,
     "plates_14": 5
@@ -95,9 +92,6 @@ This is a **binary classification problem**:
     "gold_14": 9780,
     "xp_14": 6599,
     "kda_14": 2.5,
-    "gold_20": 14010,
-    "xp_20": 14520,
-    "damage_20": 11900,
     "towers_14": 1,
     "dragons_14": 0,
     "plates_14": 3
