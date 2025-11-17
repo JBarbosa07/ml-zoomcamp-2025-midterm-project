@@ -1,0 +1,17 @@
+[project]
+name = "ml-zoomcamp-2025-midterm-project"
+version = "0.1.0"
+description = "App to predict victory in a league of legends match at the ~15 min mark."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.121.2",
+    "scikit-learn>=1.7.2",
+    "uvicorn>=0.38.0",
+    "xgboost>=3.1.1",
+]
+
+[dependency-groups]
+dev = [
+    "requests>=2.32.5",
+]

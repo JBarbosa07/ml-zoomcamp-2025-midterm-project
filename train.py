@@ -1,9 +1,8 @@
 import pickle
 
 import pandas as pd
-import numpy as np
-import sklearn
-
+from sklearn.feature_extraction import DictVectorizer
+from sklearn.pipeline import make_pipeline
 from xgboost import XGBClassifier
 
 
@@ -12,33 +11,47 @@ def load_data():
 
     df.columns = df.columns.str.lower().str.replace(' ', '_')
 
+    # Remove unnecessary match id and redundant red-first-* flags
+    del df['matchid']
+    del df['redfirstblood']
+    del df['redfirstturret']
+    del df['redfirstdragon']
+
     return df
 
 
 def train_model(df):
-    numerical = [col for col in df.columns if df[col].dtype != 'object' and col not in ['bluewins']]
-
-    X_train = df[numerical]
+    # Target
     y_train = df['bluewins']
 
-    model = XGBClassifier(
-        eta=0.05,
-        max_depth=5,
-        min_child_weight=0.1,
-        subsample=0.5,
-        colsample_bytree=0.8,
-        reg_lambda=20,
-        reg_alpha=10,
-        objective='binary:logistic',
-        eval_metric='auc',
-        nthread=8,
-        seed=1,
-        verbosity=1,
+    # All input features except the target
+    feature_cols = [c for c in df.columns if c != 'bluewins']
+
+    # Convert to list-of-dicts
+    train_dict = df[feature_cols].to_dict(orient='records')
+
+    # Build pipeline: DictVectorizer → XGBoost
+    pipeline = make_pipeline(
+        DictVectorizer(sparse=False),
+        XGBClassifier(
+            eta=0.05,
+            max_depth=5,
+            min_child_weight=0.1,
+            subsample=0.5,
+            colsample_bytree=0.8,
+            reg_lambda=20,
+            reg_alpha=10,
+            objective='binary:logistic',
+            eval_metric='auc',
+            nthread=8,
+            seed=1,
+            verbosity=1,
+        )
     )
 
-    model.fit(X_train, y_train)
+    pipeline.fit(train_dict, y_train)
 
-    return model
+    return pipeline
 
 
 def save_model(filename, model):
@@ -49,5 +62,5 @@ def save_model(filename, model):
 
 
 df = load_data()
-model = train_model(df)
-save_model('model.bin', model)
+pipeline = train_model(df)
+save_model('model.bin', pipeline)
