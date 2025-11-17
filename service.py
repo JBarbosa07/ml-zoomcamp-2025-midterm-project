@@ -1,6 +1,7 @@
 import requests
 
-url = 'http://localhost:9696/predict'
+# url = 'http://localhost:8080/predict'
+url = 'https://predict-lol-match-win-565690770584.us-west1.run.app/predict'
 
 match = {
   "first_blood": 1,

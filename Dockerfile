@@ -10,6 +10,6 @@ RUN uv sync --locked
 
 COPY "predict.py" "model.bin" ./
 
-EXPOSE 9696
+EXPOSE 8080
 
-ENTRYPOINT ["uvicorn", "predict:app", "--host", "0.0.0.0", "--port", "9696"]
+ENTRYPOINT ["uvicorn", "predict:app", "--host", "0.0.0.0", "--port", "8080"]
