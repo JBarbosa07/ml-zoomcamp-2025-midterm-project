@@ -11,11 +11,11 @@ Unlike many datasets that rely heavily on API-only data (e.g., jungle CS, champi
 
 The model uses:
 
-- Binary early objectives (first blood, first turret, first dragon)
+- **Binary early objectives** (first blood, first turret, first dragon)
 
-- Team vision stats (wards placed, wards cleared)
+- **Team vision stats** (wards placed, wards cleared)
 
-- Performance differences between teams (kills, gold, cs, objectives, etc.)
+- **Performance differences between teams** (kills, gold, cs, objectives, etc.)
 
 
 These features form a lightweight but effective predictor suitable for:
@@ -41,7 +41,7 @@ The dataset consists of ranked solo queue matches from Korean servers, containin
 
 Since the goal is real-time predictability without API access, the following transformations were applied:
 
-*Removed because they are NOT visible in-game*
+#### Removed because they are NOT visible in-game
 
 - Total experience
 
@@ -53,7 +53,7 @@ Since the goal is real-time predictability without API access, the following tra
 
 - Match ID and game duration (not needed for prediction)
 
-*Removed redundant features*
+#### Removed redundant features
 
 Stats that exist for both blue and red teams (e.g., kills, gold, towers) were converted into diff features, such as:
 
@@ -67,7 +67,7 @@ Stats that exist for both blue and red teams (e.g., kills, gold, towers) were co
 
 This reduces input redundancy and better reflects the relative state of the match, which is stronger for prediction.
 
-*Renamed or consolidated features:*
+#### Renamed or consolidated features:
 
 - ``bluewins`` → ``win``
 
@@ -77,7 +77,7 @@ This reduces input redundancy and better reflects the relative state of the matc
 
 - ``bluefirstdragon`` → ``first_dragon``
 
-**Final Input Features:**
+#### Final Input Features:
 
 After processing, the model trains on:
 ```
@@ -97,7 +97,7 @@ plates_diff
 gold_diff
 cs_diff
 ```
-**Target Variable:**
+#### Target Variable:
 - ``win`` - ``1`` if the team wins, ``0`` if it loses.
 ## Exploratory Data Analysis
 
@@ -116,31 +116,31 @@ cs_diff
 This can all be examined in full detail in the notebook.
 ## Modeling Approach & Metrics
 
-#### Problem Statement
+### Problem Statement
 
-This is a binary classification task:
+This is a **binary classification** task:
 
 - Predict whether the team will win or lose the match based on early-game visible statistics.
 
-#### Primary Metric
+### Primary Metric
 
-- ROC-AUC — chosen because it evaluates probabilistic ranking quality, not just accuracy.
+- **ROC-AUC** — chosen because it evaluates probabilistic ranking quality, not just accuracy.
 
-#### Training the Model
+### Training the Model
 
 Multiple models were tested (Logistic Regression, Decision Tree, Random Forest, XGBoost) with an 80/20/20 split ratio and a set random seed for reproducibility.
 
 After parameter tuning these were the results:
 
-- Logistic Regression: 0.8655
+- **Logistic Regression**: 0.8655
 
-- Decision Tree: 0.8618
+- **Decision Tree**: 0.8618
 
-- Random Forest: 0.8643
+- **Random Forest**: 0.8643
 
-- XGBoost: 0.8652
+- **XGBoost**: 0.8652
 
-#### Conclusion
+### Conclusion
 
 Surprisingly, **Logistic Regression** performed the best under this simplified, all-numeric dataset, likely because:
 
@@ -154,4 +154,179 @@ Surprisingly, **Logistic Regression** performed the best under this simplified, 
 
 Full details on the analysis and parameter tuning can be found in the notebook.
 ## How to Run
-#### Header
+### Local
+
+#### Dependencies
+Recommended to use uv for dependencies.
+
+```
+uv sync
+```
+
+Otherwise run:
+
+```
+pip install -r requirements.txt
+```
+
+#### Training
+
+There is a `model.bin` file already present with the trained model, but if you want to train the model yourself you may run:
+
+```
+uv run python train.py
+```
+
+#### Deployment
+
+Now you can run:
+
+```
+uv run uvicorn predict:app --reload --host 0.0.0.0 --port 8080
+```
+
+On a new terminal, you can send a request with the following structure:
+
+```
+curl -X POST "http://localhost:8080/predict" \
+  -H "Content-Type: application/json" \
+  -d '{
+      "first_blood": 1,
+      "first_turret": 0,
+      "first_dragon": 1,
+      "wards_placed": 12,
+      "wards_destroyed": 1,
+      "kills_diff": 3,
+      "deaths_diff": -1,
+      "assists_diff": 2,
+      "dragons_diff": 0,
+       "heralds_diff": 1,
+       "voidgrubs_diff": 0,
+       "towers_diff": 1,
+       "plates_diff": 5,
+       "gold_diff": 3500,
+       "cs_diff": 40
+      }'
+```
+
+Simply tune the features to your liking. There are input limitations you can view in the 'predict.py' file itself.
+
+You may also run
+
+```
+uv run python service.py
+```
+
+for a script that sends a request itself with inputs you can also modify. Just ensure that the `url` variable is set to `"http://localhost:8080/predict"` before running.
+
+### Docker
+
+#### Build Container
+
+The Dockerfile provided allows you to build an image with this command:
+
+```
+docker build -t lol-match-predictor
+```
+
+#### Run Container
+
+Simply run the following command:
+
+```
+docker run -it --rm -p 8080:8080 lol-match-predictor
+```
+
+Like with the local deploymeny, use
+
+```
+curl -X POST "http://localhost:8080/predict" \
+  -H "Content-Type: application/json" \
+  -d '{
+      "first_blood": 1,
+      "first_turret": 0,
+      "first_dragon": 1,
+      "wards_placed": 12,
+      "wards_destroyed": 1,
+      "kills_diff": 3,
+      "deaths_diff": -1,
+      "assists_diff": 2,
+      "dragons_diff": 0,
+       "heralds_diff": 1,
+       "voidgrubs_diff": 0,
+       "towers_diff": 1,
+       "plates_diff": 5,
+       "gold_diff": 3500,
+       "cs_diff": 40
+      }'
+```
+
+OR
+
+```
+uv run python service.py
+```
+
+to use the predict app.
+
+### Cloud API
+
+The application has also been deployed to Google Cloud Run at:
+
+https://predict-lol-match-win-565690770584.us-west1.run.app/
+
+The API is active and can be used at anytime. Similar to the local way, run the following with the above url:
+
+```
+curl -X POST "https://predict-lol-match-win-565690770584.us-west1.run.app/predict" \
+  -H "Content-Type: application/json" \
+  -d '{
+      "first_blood": 1,
+      "first_turret": 0,
+      "first_dragon": 1,
+      "wards_placed": 12,
+      "wards_destroyed": 1,
+      "kills_diff": 3,
+      "deaths_diff": -1,
+      "assists_diff": 2,
+      "dragons_diff": 0,
+       "heralds_diff": 1,
+       "voidgrubs_diff": 0,
+       "towers_diff": 1,
+       "plates_diff": 5,
+       "gold_diff": 3500,
+       "cs_diff": 40
+      }'
+```
+
+```
+uv run python service.py
+```
+
+You can also access the direct interactive interface with:
+
+```
+https://predict-lol-match-win-565690770584.us-west1.run.app/docs
+```
+## Known Limitations / Next Steps
+### Limitations:
+
+- No champion data → limits meta/role interactions with no categorical feature contributions
+
+- No lane-level data → cannot evaluate mismatches or power spikes
+
+- No jungle CS / XP due to in-game visibility constraints
+
+- Logistic regression assumes linear influence, which may oversimplify complex game dynamics
+
+### Potential Future Improvements
+
+- Add champion embeddings (if API access allowed)
+
+- Add lane-differentiated CS, damage, or gold
+
+- Try time-series modeling (LSTM, transformers)
+
+- Build a real-time overlay or web dashboard
+
+- Add uncertainty estimation (e.g., calibration curves)
