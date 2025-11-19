@@ -1,95 +1,157 @@
+
 # Predicting Victory in League of Legends from Early-Game Statistics
 
 ## Project Overview
-In competitive *League of Legends* matches, early-game performance often determines which team gains momentum toward victory. Key milestones, especially the **15-minute laning phase**, reflects critical indicators like gold, kills, and objective control, which can significantly influence the outcome of a match. The 15-minute mark is also crucially the first opportunity for players to forfeit a match, so a means to accurately assess whether it is worth cutting losses early is valuable.
 
-This project aims to **predict a team’s probability of winning** using early-game statistics. The model considers:
+In competitive League of Legends, early-game performance often dictates which team gains momentum toward victory. The 15-minute mark represents a critical inflection point: it captures early kills, gold disparities, and objective control, and it is also the earliest moment when players are able to surrender.
 
-- Numerical performance indicators for each role (`gold_14`, `xp_14`, `kda_14`)  
-- Team objectives (`dragons_14`, `towers_14`, `plates_14`)  
-- Champion selection per role (`top`, `jungle`, `mid`, `adc`, `support`)  
+This project predicts a team’s probability of winning using early-game statistics that are directly visible in the in-game scoreboard or easily tracked manually during live play.
 
-The aggregated dataset represents **team-level and match-level data**, where each row contains both teams’ compositions, early-game stats, and objectives.
+Unlike many datasets that rely heavily on API-only data (e.g., jungle CS, champion IDs, XP totals), this project intentionally limits itself to inputs a player could realistically gather in real-time.
 
-The goal is to help both casual or competitive players, coaches, or automated systems quickly assess whether a team is on track to win, providing insights for **real-time evaluation, esports analytics, or player training dashboards**.
+The model uses:
 
----
+- Binary early objectives (first blood, first turret, first dragon)
+
+- Team vision stats (wards placed, wards cleared)
+
+- Performance differences between teams (kills, gold, cs, objectives, etc.)
+
+
+These features form a lightweight but effective predictor suitable for:
+
+- Player improvement tools
+
+- Esports analytics
+
+- Real-time win-chance dashboards
+
+- Surrender decision evaluation
+
+
 
 ## Dataset
-URL: https://www.kaggle.com/datasets/thanhquc/league-of-legends-pre-15-minutes-stats
 
-The dataset contains ranked solo queue matches from Korean servers in *League of Legends*, collected via Riot’s official API. It contains data for both the blue team and red team, showing stats for both teams including wards placed/destroyed, kills, deaths, assists, objectives, etc.
+### Source
+https://www.kaggle.com/datasets/thanhquc/league-of-legends-pre-15-minutes-stats
 
-### **Simplification/Feature Engineering**
-The original dataset contains lots of information that cannot be gleaned directly during a match- Only postgame directly from the client or entirely hidden outside of the Riot API. While this information is quite salient for training a model, I want this project to be entirely focussed on informaton that a player can directly get from a real-time match.
+The dataset consists of ranked solo queue matches from Korean servers, containing early-game team statistics for both blue and red teams. This model uses blue team as the player's team for determining win/lose rate.
 
-As such, several features from the dataset were removed, leaving only stats that are directly visible in the in-game scoreboard, or through manually keeping track of team objectives. 1-to-1 stats between blue and red team such as Kills/Deaths/Assists were also consolidated into features that took only the differences, in order to remove redundancies and simplify the inputs for the API.
+### Feature Engineering
 
-(provide a list here)
+Since the goal is real-time predictability without API access, the following transformations were applied:
 
-### **Target Variable**
-- `win` — binary variable indicating whether the **blue team won** (`1`) or lost (`0`).
+*Removed because they are NOT visible in-game*
 
----
+- Total experience
 
-## Problem Framing
-This is a **binary classification problem**:  
+- Jungle minions killed
 
-> Predict whether the blue team wins (`1`) or loses (`0`) based on early-game statistics and champion selections.
+- Hidden or post-match values
 
-**Primary evaluation metric:** ROC-AUC  
+- Red-team-only redundant fields
 
-**Justification:** Early-game analysis is critical in competitive strategy. A model predicting outcomes from mid-game snapshots can support:
+- Match ID and game duration (not needed for prediction)
 
-- Tactical evaluation for esports teams or casual players 
-- AI commentary and highlight generation  
-- Game balance and design research  
-- Educational dashboards for player improvement  
+*Removed redundant features*
 
----
+Stats that exist for both blue and red teams (e.g., kills, gold, towers) were converted into diff features, such as:
 
-## Intended Usage
-- **Training phase:** Learn patterns from historical matches linking team composition, early-game stats, and outcomes.  
-- **Prediction phase (API):** Submit early-game data from a new match (15-minute snapshot) and receive a **win probability** for the team.
+- ``kills_diff``
 
----
+- ``gold_diff``
 
-## Example API Request & Response
+- ``cs_diff``
 
-**Input JSON:**
-```json
-{
-  "blue_team": {
-    "top": "garen",
-    "jungle": "leesin",
-    "mid": "ahri",
-    "adc": "jinx",
-    "support": "thresh",
-    "gold_14": 9252,
-    "xp_14": 10317,
-    "kda_14": 3.2,
-    "towers_14": 2,
-    "dragons_14": 1,
-    "plates_14": 5
-  },
-  "red_team": {
-    "top": "darius",
-    "jungle": "amumu",
-    "mid": "zed",
-    "adc": "caitlyn",
-    "support": "lux",
-    "gold_14": 9780,
-    "xp_14": 6599,
-    "kda_14": 2.5,
-    "towers_14": 1,
-    "dragons_14": 0,
-    "plates_14": 3
-  }
-}
+- ``towers_diff``, etc.
+
+This reduces input redundancy and better reflects the relative state of the match, which is stronger for prediction.
+
+*Renamed or consolidated features:*
+
+- ``bluewins`` → ``win``
+
+- ``bluefirstblood`` → ``first_blood``
+
+- ``bluefirstturret`` → ``first_turret``
+
+- ``bluefirstdragon`` → ``first_dragon``
+
+**Final Input Features:**
+
+After processing, the model trains on:
 ```
-**Output JSON:**
-```json
-{
-  "blue_win_probability": 0.73
-}
+first_blood
+first_turret
+first_dragon
+wards_placed
+wards_destroyed
+kills_diff
+deaths_diff
+assists_diff
+dragons_diff
+heralds_diff
+voidgrubs_diff
+towers_diff
+plates_diff
+gold_diff
+cs_diff
 ```
+**Target Variable:**
+- ``win`` - ``1`` if the team wins, ``0`` if it loses.
+## Exploratory Data Analysis
+
+#### Key findings from EDA
+
+- Gold difference, tower difference, and first turret have the strongest correlations with winning.
+
+- Dragon and herald advantages also strongly correlate with win probability.
+
+- Vision stats correlate positively but with lower weight.
+
+- Most diff features have intuitive positive or negative distributions toward the win outcome.
+
+- Objective “firsts” (blood/turret/dragon) show strong win-rate advantages individually and cumulatively.
+
+This can all be examined in full detail in the notebook.
+## Modeling Approach & Metrics
+
+#### Problem Statement
+
+This is a binary classification task:
+
+- Predict whether the team will win or lose the match based on early-game visible statistics.
+
+#### Primary Metric
+
+- ROC-AUC — chosen because it evaluates probabilistic ranking quality, not just accuracy.
+
+#### Training the Model
+
+Multiple models were tested (Logistic Regression, Decision Tree, Random Forest, XGBoost) with an 80/20/20 split ratio and a set random seed for reproducibility.
+
+After parameter tuning these were the results:
+
+- Logistic Regression: 0.8655
+
+- Decision Tree: 0.8618
+
+- Random Forest: 0.8643
+
+- XGBoost: 0.8652
+
+#### Conclusion
+
+Surprisingly, **Logistic Regression** performed the best under this simplified, all-numeric dataset, likely because:
+
+- No categorical champion data
+
+- Many features are already normalized as differences
+
+- Logistic Regression handles linear feature relationships cleanly
+
+- Data is high-dimensional but not expressive enough for tree models to shine
+
+Full details on the analysis and parameter tuning can be found in the notebook.
+## How to Run
+#### Header
